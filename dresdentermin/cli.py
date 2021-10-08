@@ -70,12 +70,18 @@ def get_appointments(cause=1, month=None, year=None):
 
 
 def telegram_bot_sendtext(message, chat_id):
-    response = requests.get(f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage', params={
+    response = requests.post(f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage', json={
         'chat_id': chat_id,
-        'parse_mode': 'Markdown',
+        'parse_mode': 'MarkdownV2',
         'text': message,
     })
     return response.json()
+
+
+def telegram_escape(msg):
+    for char in ['_', '-', '.', '=']:
+        msg = msg.replace(char, '\\' + char)
+    return msg
 
 
 def get_all_appointments():
@@ -87,12 +93,18 @@ def notify(best):
     date, cause = best
     LOGGER.info("new best: %s %d", str(date), cause)
     link = f'https://termine.dresden.de/netappoint/index.php?company=stadtdresden-bb&cur_cause={cause}'
-    message = f'new free appointment: {date}, visit {link}'
-    telegram_bot_sendtext(message, chat_id=CHAT_ID)
-
+    message = f'new free appointment: {date}, visit [{link}]({link})'
+    message = telegram_escape(message)
+    r = telegram_bot_sendtext(message, chat_id=CHAT_ID)
+    if not r.get('ok'):
+        LOGGER.error("error sending tg message: %s", repr(r))
 
 def main():
-    logging.basicConfig(level='INFO')
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
     LOGGER.info("starting")
 
     best_date = min(get_all_appointments())
