@@ -115,7 +115,7 @@ def main():
         LOGGER.info("start fetching best appointment")
         new_best_date = min(get_all_appointments())
         LOGGER.info("done fetching best appointment")
-        if new_best_date[0] < best_date[0]:
+        if new_best_date[0] != best_date[0]:
             best_date = new_best_date
             notify(best_date)
 
